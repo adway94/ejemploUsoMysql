@@ -39,8 +39,6 @@ PUT para modificar la pizza
 DELETE para borrar una pizza
 */
 
-
-
 /* 
 GET para obtener las Restaurants
 GET id para obtener 1 Restaurant del id
@@ -48,7 +46,7 @@ POST para generar una Restaurant nueva
 PUT para modificar la Restaurant
 DELETE para borrar una Restaurant
 */
-
+//Restaurants
 app.get('/restaurants', async (req, res) => {
     try{
         const query = 'SELECT * FROM restaurant'
@@ -81,13 +79,71 @@ app.post('/restaurants', async (req, res) => {
         let query = 'SELECT * FROM restaurant WHERE nombre = ?'
 
         let respuesta = await qy(query,[req.body.nombre])
-        res.send({'Respuesta': respuesta})
+        
+        if(respuesta.length > 0 ) {
+            throw new Error('Ese restaurant ya existe')
+        }
+
+        query = 'INSERT INTO restaurant (nombre) VALUE (?)'
+        respuesta = await qy(query, [req.body.nombre])
+
+        res.send({'ID': respuesta.insertId})
     }
     catch(e){
         console.error(e.message)
         res.status(413).send({'Error': e.message})
     }
 })
+
+app.put('/restaurants/:id', async (req, res) => {
+    try {
+        if(!req.body.nombre){
+            throw new Error('No enviaste el nombre')
+        }
+
+        let query = 'SELECT * FROM restaurant WHERE nombre = ? AND id <> ?'
+        let respuesta = await qy(query, [req.body.nombre, req.params.id])
+
+        if(respuesta > 0){
+            throw new Error('El nombre del restaurant ya existe')
+        }
+
+        query = 'UPDATE restaurant SET nombre = ? WHERE id = ?'
+        respuesta = await qy(query, [req.body.nombre, req.params.id])
+
+        res.send({"Respuesta":respuesta})
+    }
+    catch(e){
+        console.error(e.message)
+        res.status(413).send({'Error': e.message})
+    }
+})
+
+app.delete('/restaurants/:id', async(req, res) =>{
+    try {
+        let query = 'SELECT * FROM restaurant WHERE pedido_id = ?'
+        let respuesta = await qy(query, [req.params.id])
+
+        if(respuesta.length > 0){
+            throw new Error('Este Restaurant tiene pedidos asociados no se puede borrar')
+        }
+
+        query = 'DELETE FROM restaurant WHERE id = ?'
+        respuesta = await qy(query, [req.params.id])
+
+        res.send({"Respuesta":respuesta})
+        
+    }
+    catch(e){
+        console.error(e.message)
+        res.status(413).send({'Error': e.message})
+    }
+})
+
+//Pizzas
+
+
+
 
 
 //Server
